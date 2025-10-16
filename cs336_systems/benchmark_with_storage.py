@@ -4,9 +4,18 @@ import timeit
 import pandas as pd
 import torch
 import argparse
-from cs336_basics.model import BasicsTransformerLM
+import argparse
+import sys
+from pathlib import Path
+
+# 添加 cs336-basics 目录到 sys.path
+basics_dir = Path(__file__).parent.parent / 'cs336-basics'
+sys.path.insert(0, str(basics_dir))
+from model import BasicsTransformerLM
 from tqdm import tqdm
 import torch.cuda.nvtx as nvtx
+
+
 def benchmark_model(args):
     # 设置设备
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

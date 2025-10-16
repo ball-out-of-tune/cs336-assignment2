@@ -14,7 +14,7 @@ from torch import Tensor
 from jaxtyping import Float, Bool, Int
 
 
-from .nn_utils import softmax
+from nn_utils import softmax
 
 logger = logging.getLogger(__name__)
 
