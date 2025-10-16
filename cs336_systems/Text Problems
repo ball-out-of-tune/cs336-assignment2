@@ -87,9 +87,18 @@ ans:
     中大模型：混合精度应显示明显加速（1.3-1.8倍），因为BF16减少了内存带宽需求和计算开销
     超大模型：加速效果最显著，因为内存节省避免了GPU内存交换
 
+    batch_size == 4
     ==== Benchmark Summary (ms per step) ====
     Forward:   708.74 ± 70.38
     Backward:  1122.31 ± 231.31
     Optimizer: 150.70 ± 19.64
     Total:     1986.32 ± 189.67
+    =========================================
+
+    batch_size == 2
+    ==== Benchmark Summary (ms per step) ====
+    Forward:   61.60 ± 0.32
+    Backward:  129.18 ± 0.52
+    Optimizer: 104.80 ± 0.76
+    Total:     304.43 ± 23.73
     =========================================
