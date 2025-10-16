@@ -1,0 +1,27 @@
+# 作业代码（本地上传即可，不必安装）
+# cs336-basics  
+
+# 基础工具包
+humanfriendly
+matplotlib
+numpy
+pandas>=2
+openpyxl
+
+# 正则处理
+regex>=2024.11.6
+
+# PyTorch
+torch~=2.6.0
+
+# 训练进度条
+tqdm>=4.67.1
+
+# 实验日志（W&B）
+wandb>=0.19.7
+
+# 类型注解/工具库
+ty>=0.0.1a16
+
+# 测试框架（可选）
+pytest>=8
