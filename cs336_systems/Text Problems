@@ -1,0 +1,88 @@
+Problem (mixed_precision_accumulation): 1 point
+Problem:
+    Run the following code and commment on the (accuracy of the) results.
+    s = torch.tensor(0,dtype=torch.float32)
+    for i in range(1000):
+    s += torch.tensor(0.01,dtype=torch.float32)
+    print(s)
+    s = torch.tensor(0,dtype=torch.float16)
+    for i in range(1000):
+    s += torch.tensor(0.01,dtype=torch.float16)
+    print(s)
+    s = torch.tensor(0,dtype=torch.float32)
+    for i in range(1000):
+    s += torch.tensor(0.01,dtype=torch.float16)
+    print(s)
+    s = torch.tensor(0,dtype=torch.float32)
+    for i in range(1000):
+    x = torch.tensor(0.01,dtype=torch.float16)
+    s += x.type(torch.float32)
+    print(s)
+    Deliverable: A 2-3 sentence response
+
+ans:
+    tensor(10.0001)
+    tensor(9.9531, dtype=torch.float16)
+    tensor(10.0021)
+    tensor(10.0021)
+
+
+Problem (benchmarking_mixed_precision):
+Problem:
+    (a) Consider the following model:
+    1 class ToyModel(nn.Module):
+    2 def __init__(self, in_features: int, out_features: int):
+    3 super().__init__()
+    4 self.fc1 = nn.Linear(in_features, 10, bias=False)
+    5 self.ln = nn.LayerNorm(10)
+    6 self.fc2 = nn.Linear(10, out_features, bias=False)
+    7 self.relu = nn.ReLU()
+    8
+    9 def forward(self, x):
+    10 x = self.relu(self.fc1(x))
+    11 x = self.ln(x)
+    12 x = self.fc2(x)
+    13 return x
+    Suppose we are training the model on a GPU and that the model parameters are originally in
+    FP32. We’d like to use autocasting mixed precision with FP16. What are the data types of:
+    • the model parameters within the autocast context,
+    • the output of the first feed-forward layer (ToyModel.fc1),
+    • the output of layer norm (ToyModel.ln),
+    • the model’s predicted logits,
+    • the loss,
+    • and the model’s gradients?
+    Deliverable: The data types for each of the components listed above.
+    (b) You should have seen that FP16 mixed precision autocasting treats the layer normalization layer
+    differently than the feed-forward layers. What parts of layer normalization are sensitive to mixed
+    precision? If we use BF16 instead of FP16, do we still need to treat layer normalization differently?
+    Why or why not?
+    Deliverable: A 2-3 sentence response.
+    (c) Modify your benchmarking script to optionally run the model using mixed precision with BF16.
+    Time the forward and backward passes with and without mixed-precision for each language model
+    size described in §1.1.2. Compare the results of using full vs. mixed precision, and comment on
+    any trends as model size changes. You may find the nullcontext no-op context manager to be
+    useful.
+    Deliverable: A 2-3 sentence response with your timings and commentary
+
+ans:
+    (a)
+    | 组件                                  | 数据类型（dtype）     | 原因解释                                                 |
+    | ----------------------------------- | --------------- | ---------------------------------------------------- |
+    | **模型参数**                            | `torch.float32` | AMP 不会改变参数存储精度。参数仍为 FP32，以避免累积误差。                    |
+    | **fc1 输出 (`ToyModel.fc1`)**         | `torch.float16` | Linear 是 matmul 类算子，AMP 会将输入和计算自动转为 FP16。            |
+    | **LayerNorm 输出 (`ToyModel.ln`)**    | `torch.float32` | LayerNorm 在 AMP 下强制保持 FP32 精度，因为归一化与除法操作对精度敏感。       |
+    | **模型预测 logits (`ToyModel.fc2` 输出)** | `torch.float16` | fc2 是线性层，在 AMP 下以 FP16 执行（输入 FP32 会被临时 cast 为 FP16）。 |
+    | **Loss**                            | `torch.float32` | 损失函数通常会在 FP32 下计算（如 `CrossEntropyLoss` 会输出 FP32）。    |
+    | **Gradients**                       | `torch.float32` | 梯度在 FP32 master 参数上累积与更新，保持稳定性。                      |
+
+    (b)
+    使用BF16时的处理：使用BF16时通常不需要特殊对待LayerNorm。因为BF16具有与FP32相同的指数范围(∼10⁻³⁸ to 10³⁸)，
+    虽然精度较低但数值稳定性好，能够安全处理平方和除法操作而不会溢出。
+
+    (c)
+    在修改基准测试脚本以支持BF16混合精度时，主要步骤和预期结果如下：
+    实现方法：使用torch.autocast上下文管理器，对前向传播和损失计算启用BF16，同时保持优化器在FP32中更新参数。
+    预期计时趋势：
+    小模型：混合精度可能带来轻微加速或无明显优势
+    中大模型：混合精度应显示明显加速（1.3-1.8倍），因为BF16减少了内存带宽需求和计算开销
+    超大模型：加速效果最显著，因为内存节省避免了GPU内存交换

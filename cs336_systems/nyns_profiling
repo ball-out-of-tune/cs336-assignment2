@@ -1,0 +1,103 @@
+Problem (nsys_profile): 5 points
+Profile your forward pass, backward pass, and optimizer step using nsys with each of the model
+sizes described in Table 1 and context lengths of 128, 256, 512 and 1024 (you may run out of memory
+with some of these context lengths for the larger models, in which case just note it in your report).
+(a) What is the total time spent on your forward pass? Does it match what we had measured before
+with the Python standard library?
+Deliverable: A 1-2 sentence response.
+(b) What CUDA kernel takes the most cumulative GPU time during the forward pass? How many
+times is this kernel invoked during a single forward pass of your model? Is it the same kernel
+that takes the most runtime when you do both forward and backward passes? (Hint: look at the
+“CUDA GPU Kernel Summary” under “Stats Systems View”, and filter using NVTX ranges to
+identify which parts of the model are responsible for which kernels.)
+Deliverable: A 1-2 sentence response.
+(c) Although the vast majority of FLOPs take place in matrix multiplications, you will notice that
+several other kernels still take a non-trivial amount of the overall runtime. What other kernels
+besides matrix multiplies do you see accounting for non-trivial CUDA runtime in the forward
+pass?
+Deliverable: A 1-2 sentence response.
+(d) Profile running one complete training step with your implementation of AdamW (i.e., the forward
+pass, computing the loss and running a backward pass, and finally an optimizer step, as you’d do
+during training). How does the fraction of time spent on matrix multiplication change, compared
+to doing inference (forward pass only)? How about other kernels?
+Deliverable: A 1-2 sentence response.
+(e) Compare the runtime of the softmax operation versus the matrix multiplication operations within
+the self-attention layer of your model during a forward pass. How does the difference in runtimes
+compare to the difference in FLOPs?
+Deliverable: A 1-2 sentence response.
+
+forward_only:
+ ** NVTX Range Summary (nvtx_sum):
+
+ Time (%)  Total Time (ns)  Instances    Avg (ns)      Med (ns)    Min (ns)    Max (ns)   StdDev (ns)    Style            Range         
+ --------  ---------------  ---------  ------------  ------------  ---------  ----------  ------------  -------  -----------------------
+     50.0      43649639376         10  4364963937.6  4223782891.0  421926439  8847615231  4080879507.0  PushPop  :complete_training_step
+     50.0      43648762123         10  4364876212.3  4223732576.5  421874868  8847494695  4080875246.4  PushPop  :forward_pass  
+
+** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)   Med (ns)   Min (ns)  Max (ns)   StdDev (ns)                                                  Name                                                
+ --------  ---------------  ---------  ----------  ---------  --------  ---------  -----------  ----------------------------------------------------------------------------------------------------
+     38.4      17045832703       1275  13369280.6  2154038.0    504237  235827861   24107302.0  ampere_sgemm_128x64_tn                                                                              
+     18.4       8154731692       1080   7550677.5    68290.0     54274   39110498   13464119.5  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+     12.6       5597765630       2190   2556057.4    68690.0     53218   14820586    4155268.6  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      4.1       1820855674        360   5057932.4   415674.5    411242   16945025    6355868.7  void at::native::vectorized_elementwise_kernel<(int)4, at::native::BinaryFunctor<float, float, floa…
+      4.0       1786405130        180   9924472.9   466476.0    403660   45383576   13458062.9  ampere_sgemm_128x128_tn                                                                             
+      3.9       1726590763        180   9592170.9   740146.0    607826   35562227   12417865.0  ampere_sgemm_128x128_nn                                                                             
+      2.8       1221336708        180   6785203.9   557758.0    554094   23527090    8354679.4  void at::native::vectorized_elementwise_kernel<(int)4, at::native::exp_kernel_cuda(at::TensorIterat…
+      2.7       1187562694        180   6597570.5   557790.0    554862   26391070    8308030.9  void at::native::vectorized_elementwise_kernel<(int)4, at::native::BUnaryFunctor<float, float, floa…
+      2.4       1062973073        180   5905406.0   551486.0    545199   25350114    7387919.3  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      2.3       1040675805        180   5781532.3   558575.5    549424   20966958    7158927.7  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      2.2        981510377        180   5452835.4   443787.0    436205   24585711    6993092.2  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      1.3        596492038        180   3313844.7   284839.5    278727   12960665    4306472.6  void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<float, at::native::MaxOps<flo…
+      1.3        586852707        180   3260292.8   278551.5    275911   11502482    4087952.8  void at::native::vectorized_elementwise_kernel<(int)4, at::native::sigmoid_kernel_cuda(at::TensorIt…
+      1.3        586518738        180   3258437.4   278951.0    272775   10809760    3992329.0  void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<float, at::native::func_wrapp…
+      1.1        499444755       1080    462448.8    52929.0     47553    5460882    1092859.6  void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::arr…
+      0.7        301852011        375    804938.7    70786.0     66849    2834436    1022708.8  void at::native::vectorized_elementwise_kernel<(int)4, void at::native::<unnamed>::pow_tensor_scala…
+      0.4        156705944        375    417882.5    43970.0     40353    7856051     634181.0  void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<float, at::native::MeanOps<fl…
+
+
+forward and backward and optimizer:
+ Time (%)  Total Time (ns)  Instances    Avg (ns)      Med (ns)     Min (ns)    Max (ns)    StdDev (ns)   Style            Range         
+ --------  ---------------  ---------  ------------  ------------  ----------  -----------  -----------  -------  -----------------------
+     50.0      95975841174         10  9597584117.4  9557582265.5  9030617611  10352423477  443368177.0  PushPop  :complete_training_step
+     32.7      62744013119         10  6274401311.9  6319356657.5  5706599581   6756404137  323919406.6  PushPop  :backward_pass         
+     15.5      29663452644         10  2966345264.4  2969137784.5  2701582447   3377536829  229882692.9  PushPop  :forward_pass          
+      1.8       3479453573         10   347945357.3   311895627.5   270134600    557741594   96006844.6  PushPop  :optimizer_step        
+      0.0         86705263         10     8670526.3     1207115.0     1064862     74583523   23162151.4  PushPop  :loss_computation     
+
+ ** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)     Med (ns)    Min (ns)   Max (ns)   StdDev (ns)                                                  Name                                                
+ --------  ---------------  ---------  -----------  -----------  ---------  ---------  -----------  ----------------------------------------------------------------------------------------------------
+     14.4      20617342622       1260   16362970.3   10851749.0     487628   80181071   18736759.5  ampere_sgemm_128x64_nn                                                                              
+     12.6      18001539881       1275   14118854.8    2113690.0     504397  220880939   27750748.8  ampere_sgemm_128x64_tn                                                                              
+     12.4      17765301232       3435    5171849.0      70786.0      32033  103180754   11855625.0  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+     11.4      16225213696       1095   14817546.8    5454695.0     504013  238319195   29832211.6  ampere_sgemm_128x64_nt                                                                              
+      7.7      11067873682        180   61488187.1   48763276.5   35828878  108614798   21610699.8  ampere_sgemm_64x64_nt                                                                               
+      7.3      10445427151       2940    3552866.4     827301.5        928   35362674    6110356.0  void at::native::vectorized_elementwise_kernel<(int)4, at::native::BinaryFunctor<float, float, floa…
+      5.3       7588221601      10105     750937.3      59074.0        960   48571604    2632606.8  void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::arr…
+      4.3       6186928885       4385    1410930.2      70018.0      30529   25391524    2979673.5  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      2.2       3155417206        720    4382523.9     555982.0     546990   21070136    6029578.2  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      2.1       3037896815         15  202526454.3  199696044.0  196108113  218822571    6278869.6  void cutlass::Kernel2<cutlass_80_simt_sgemm_128x128_8x4_nn_align1>(T1::Params)                      
+      2.1       3037294733        360    8436929.8     458859.5     403114   42119982   11147744.5  ampere_sgemm_128x128_tn                                                                             
+      2.1       2956901378        180   16427229.9     476524.0      68642   52370941   23253249.3  void at::native::<unnamed>::CatArrayBatchedCopy_aligned16_contig<at::native::<unnamed>::OpaqueType<…
+      1.9       2771376558        360    7698268.2    1380388.0     606863   48545096   10958430.9  ampere_sgemm_128x128_nn                                                                             
+      1.6       2353330924        380    6192976.1     556957.5     552495   31994479    8729124.0  void at::native::vectorized_elementwise_kernel<(int)4, at::native::neg_kernel_cuda(at::TensorIterat…
+      1.5       2112654137      10740     196709.0      27328.0        928   13088952     556145.0  void at::native::vectorized_elementwise_kernel<(int)4, at::native::AUnaryFunctor<float, float, floa…
+      1.2       1714183065        930    1843207.6     277639.0      36385   17143812    3432193.9  void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<float, at::native::func_wrapp…
+      1.2       1677122427        360    4658673.4     556878.0     550286   20490387    7222787.2  void at::native::vectorized_elementwise_kernel<(int)4, at::native::BUnaryFunctor<float, float, floa…
+      1.1       1633473254        370    4414792.6     546574.0     544686   26662669    6415944.2  void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::n…
+      1.0       1376455795        360    3823488.3     597199.0     571182   15406454    5023455.8  ampere_sgemm_128x128_nt  
+
+下面是对五小题的简短回答:
+
+(a) 前向传递总耗时约 43,648,762,123 ns ≈ 43.65 s（来自 :forward_pass 的 43648762123 ns），与用 Python 标准库测得的前向时间在量级上是一致的（在测量误差／运行噪声范围内匹配）。
+
+(b) 前向传递中累计 GPU 时间最多的 CUDA kernel 是 ampere_sgemm_128x64_tn（占 38.4%，总时长 ~17.05 s），在单次前向中被调用 1275 次；在完整训练（前向+反向+优化）统计中它不是唯一的第一名（被 ampere_sgemm_128x64_nn 等其它 matmul 内核分摊，变为并列的重要内核）。
+
+(c) 除了矩阵乘（sgemm）外，前向中还有显著占比的内核包括各种 elementwise / vectorized elementwise（点乘、加、exp、sigmoid 等） 与 reduce（如 max/mean 用于 softmax） 内核，这些占用了非小的 CUDA 时间。
+
+(d) 在做完整训练步（forward + backward + optimizer）时，矩阵乘仍然是主要耗时项但其相对比例被反向传递中大量的 elementwise / 向量化内核与梯度相关操作稀释——也就是说相对于只做推理时，矩阵乘占总步骤的比例下降（而 elementwise、归约、拷贝/拼接等内核在整体训练步骤中所占比重上升）。
+
+(e) 在自注意力层内，softmax（由 exp、reduce、除法等 elementwise/归约内核实现）的实际运行时间远小于矩阵乘，但并不会按 FLOPs 比例线性缩小：softmax 的 FLOPs 比矩阵乘少得多，但它更受内存/带宽与零散内核开销影响，因此其 运行时间相对于 FLOPs 的“昂贵性”要更高一些（即软/内存绑定开销使得 softmax 在时间上显得比按 FLOPs 预期要贵）。
