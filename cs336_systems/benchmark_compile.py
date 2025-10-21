@@ -164,7 +164,27 @@ def main():
     print(f"Context length: {args.context_length}")
     print(f"Forward only: {args.forward_only}")
 
-    results = benchmark_model(args)
+     # ---------------- 运行对照 ----------------
+    results_dict = {}
+
+    for compile_flag in [False, True]:
+        args.compile = compile_flag
+        label = "compiled" if compile_flag else "vanilla"
+        print(f"\n=== Running {label} model ===")
+        results = benchmark_model(args)
+        results_dict[label] = results
+
+    # ---------------- 打印对照表 ----------------
+    df = pd.DataFrame(results_dict).T[['forward_avg', 'backward_avg', 'optimizer_avg', 'total_avg']]
+    df = df.rename(columns={
+        'forward_avg': 'Forward (ms)',
+        'backward_avg': 'Backward (ms)',
+        'optimizer_avg': 'Optimizer (ms)',
+        'total_avg': 'Total (ms)'
+    })
+    print("\n==== Comparison Table (ms per step) ====")
+    print(df)
+    print("=========================================")
 
 if __name__ == "__main__":
     main()

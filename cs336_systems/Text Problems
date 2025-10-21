@@ -102,3 +102,111 @@ ans:
     Optimizer: 104.80 ± 0.76
     Total:     304.43 ± 23.73
     =========================================
+
+Problem:
+    Problem (pytorch_attention): 2 points
+    (a) Benchmark your attention implementation at different scales. Write a script that will:
+    (a) Fix the batch size to 8 and don’t use multihead attention (i.e. remove the head dimension).
+    (b) Iterate through the cartesian product of [16, 32, 64, 128] for the head embedding dimension dmodel, and [256, 1024, 4096, 8192, 16384] for the sequence length.
+    (c) Create random inputs Q, K, V for the appropriate size.
+    (d) Time 100 forward passes through attention using the inputs.
+    (e) Measure how much memory is in use before the backward pass starts, and time 100 backward
+    passes.
+    (f) Make sure to warm up, and to call torch.cuda.synchronize() after each forward/backward
+    pass.
+    Report the timings (or out-of-memory errors) you get for these configurations. At what size do
+    you get out-of-memory errors? Do the accounting for the memory usage of attention in one of the
+    smallest configurations you find that runs out of memory (you can use the equations for memory
+    usage of Transformers from Assignment 1). How does the memory saved for backward change
+    with the sequence length? What would you do to eliminate this memory cost?
+    Deliverable: A table with your timings, your working out for the memory usage, and a 1-2
+    paragraph response.
+
+Solution:
+       d_model  seq_len  forward_time_ms  backward_time_ms  memory_before_backward_MB   status
+    0       16      256         0.286360          0.636823                  19.125488  Success
+    1       16     1024         1.712267          3.668833                  51.750488  Success
+    2       32      256         0.269003          0.634968                  20.000488  Success
+    3       32     1024         1.730001          3.741384                  55.250488  Success
+    4       64      256         0.296972          0.674500                  21.750488  Success
+    5       64     1024         1.775091          4.014287                  62.250488  Success
+
+Problem:
+    Problem (torch_compile): 2 points
+    (a) Extend your attention benchmarking script to include a compiled version of your PyTorch implementation of attention, and compare its performance to the uncompiled version with the same
+    configuration as the pytorch_attention problem above.
+    Deliverable: A table comparing your forward and backward pass timings for your compiled
+    attention module with the uncompiled version from the pytorch_attention problem above.
+    (b) Now, compile your entire Transformer model in your end-to-end benchmarking script. How does
+    the performance of the forward pass change? What about the combined forward and backward
+    passes and optimizer steps?
+    Deliverable: A table comparing your vanilla and compiled Transformer model.
+
+
+
+
+Solution:
+    (a)
+           version  d_model  seq_len  forward_time_ms  backward_time_ms   status
+    0   uncompiled       16      256         0.386119          1.463807  Success
+    1     compiled       16      256         0.407028          0.812531  Success
+    2   uncompiled       16     1024         2.222729          4.298615  Success
+    3     compiled       16     1024         1.766145          4.475713  Success
+    4   uncompiled       32      256         1.328003          1.709282  Success
+    5     compiled       32      256         0.406444          0.776589  Success
+    6   uncompiled       32     1024         2.013481          4.145408  Success
+    7     compiled       32     1024         1.710641          3.203261  Success
+    8   uncompiled       64      256         0.343549          0.793374  Success
+    9     compiled       64      256         0.382316          0.719428  Success
+    10  uncompiled       64     1024         1.908934          4.085565  Success
+    11    compiled       64     1024         1.623893          3.269637  Success
+
+    === Comparison Table (compiled vs uncompiled) ===
+                    backward_time_ms            forward_time_ms           
+    version                 compiled uncompiled        compiled uncompiled
+    d_model seq_len                                                       
+    16      256             0.812531   1.463807        0.407028   0.386119
+            1024            4.475713   4.298615        1.766145   2.222729
+    32      256             0.776589   1.709282        0.406444   1.328003
+            1024            3.203261   4.145408        1.710641   2.013481
+    64      256             0.719428   0.793374        0.382316   0.343549
+            1024            3.269637   4.085565        1.623893   1.908934
+
+    (b)
+    === Running vanilla model ===
+    Running 5 warm-up steps...
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5/5 [00:47<00:00,  9.48s/it]
+    Running 10 measurement steps...
+    100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [01:39<00:00,  9.95s/it]
+
+    ==== Benchmark Summary (ms per step) ====
+    Forward:   3014.62 ± 160.60
+    Backward:  6569.98 ± 398.94
+    Optimizer: 360.32 ± 103.30
+    Total:     9952.94 ± 436.59
+    =========================================
+
+    === Running compiled model ===
+    Running 5 warm-up steps...
+    0%|                                                                                                                              | 0/5 [00:00<?, ?it/s]/home/booft/pytorch-selflearning/assignment2-systems/.venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py:194: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+    warnings.warn(
+    W1017 16:19:05.785000 19210 torch/_inductor/utils.py:1137] [0/0] Not enough SMs to use max_autotune_gemm mode
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5/5 [01:06<00:00, 13.24s/it]
+    Running 10 measurement steps...
+    100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [01:10<00:00,  7.00s/it]
+
+    ==== Benchmark Summary (ms per step) ====
+    Forward:   944.12 ± 165.17
+    Backward:  5701.60 ± 561.36
+    Optimizer: 356.77 ± 63.94
+    Total:     7003.06 ± 621.03
+    =========================================
+
+    ==== Comparison Table (ms per step) ====
+            Forward (ms)  Backward (ms)  Optimizer (ms)   Total (ms)
+    vanilla    3014.621091    6569.982600      360.318279  9952.937675
+    compiled    944.122863    5701.600552      356.773639  7003.055859
+    =========================================
+    
+
+    

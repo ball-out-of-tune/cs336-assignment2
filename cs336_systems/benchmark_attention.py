@@ -14,8 +14,11 @@ def attention_forward(Q, K, V):
 
 def benchmark_attention():
     batch_size = 8
+    # d_model_list = [16, 32, 64, 128]
     d_model_list = [16, 32, 64, 128]
-    seq_len_list = [256, 1024, 4096, 8192, 16384]
+    # seq_len_list = [256, 1024, 4096, 8192, 16384]
+    seq_len_list = [256, 1024, 4096, 8192]
+
     
     results = []
     
