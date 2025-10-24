@@ -208,5 +208,42 @@ Solution:
     compiled    944.122863    5701.600552      356.773639  7003.055859
     =========================================
     
+Question:
+    Problem (distributed_communication_single_node): 5 points
+    Write a script to benchmark the runtime of the all-reduce operation in the single-node multi-process
+    setup. The example code above may provide a reasonable starting point. Experiment with varying the
+    following settings:
+    Backend + device type: Gloo + CPU, NCCL + GPU.
+    all-reduce data size: float32 data tensors ranging over 1MB, 10MB, 100MB, 1GB.
+    Number of processes: 2, 4, or 6 processes.
+    Resource requirements: Up to 6 GPUs. Each benchmarking run should take less than 5 minutes.
+
+    Deliverable: Plot(s) and/or table(s) comparing the various settings, with 2-3 sentences of commentary about your results and thoughts about how the various factors interact.
+
+
+Solution : 
+    [Backend=gloo, Device=cpu, Size=1MB, World=2]
+    Avg all-reduce time (per rank): [0.0025213719345629215, 0.002513241721317172]
+    Mean time: 0.0025 s
+
+    [Backend=gloo, Device=cpu, Size=10MB, World=2]
+    Avg all-reduce time (per rank): [0.006701040081679821, 0.0067071677185595036]
+    Mean time: 0.0067 s
+
+    [Backend=gloo, Device=cpu, Size=100MB, World=2]
+    Avg all-reduce time (per rank): [0.06403537094593048, 0.06402194499969482]
+    Mean time: 0.0640 s
+
+    [Backend=gloo, Device=cpu, Size=1MB, World=4]
+    Avg all-reduce time (per rank): [0.004708766937255859, 0.0047458172775805, 0.004713201429694891, 0.004721975419670343]
+    Mean time: 0.0047 s
+
+    [Backend=gloo, Device=cpu, Size=10MB, World=4]
+    Avg all-reduce time (per rank): [0.012697577476501465, 0.012697339057922363, 0.012678814120590687, 0.012694573029875755]
+    Mean time: 0.0127 s
+
+    [Backend=gloo, Device=cpu, Size=100MB, World=4]
+    Avg all-reduce time (per rank): [0.13856235146522522, 0.1385645866394043, 0.13855834305286407, 0.13856299221515656]
+    Mean time: 0.1386 s
 
     
