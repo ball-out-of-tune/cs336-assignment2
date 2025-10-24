@@ -246,4 +246,93 @@ Solution :
     Avg all-reduce time (per rank): [0.13856235146522522, 0.1385645866394043, 0.13855834305286407, 0.13856299221515656]
     Mean time: 0.1386 s
 
-    
+result on server(cpu):
+    [Gloo] Rank 1 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+    [Gloo] Rank 0 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+
+    [Backend=gloo, Device=cpu, Size=1MB, World=2]
+    Avg all-reduce time (per rank): [0.0008834839100018144, 0.0008838653448037803]
+    Mean time: 0.0009 s
+    [Gloo] Rank 0 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+    [Gloo] Rank 1 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+
+    [Backend=gloo, Device=cpu, Size=10MB, World=2]
+    Avg all-reduce time (per rank): [0.008769440464675426, 0.008771633729338646]
+    Mean time: 0.0088 s
+    [Gloo] Rank 1 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+    [Gloo] Rank 0 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+
+    [Backend=gloo, Device=cpu, Size=100MB, World=2]
+    Avg all-reduce time (per rank): [0.09392721951007843, 0.09392790496349335]
+    Mean time: 0.0939 s
+
+    [Gloo] Rank 0 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 3 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 1 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 2 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+
+    [Backend=gloo, Device=cpu, Size=1MB, World=4]
+    Avg all-reduce time (per rank): [0.0018239021301269531, 0.0018257379997521639, 0.0018275261390954256, 0.0018243551021441817]
+    Mean time: 0.0018 s
+    [Gloo] Rank 1 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 0 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 2 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 3 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+
+    [Backend=gloo, Device=cpu, Size=10MB, World=4]
+    Avg all-reduce time (per rank): [0.013946080580353737, 0.013952994719147682, 0.013945961371064186, 0.013951706700026989]
+    Mean time: 0.0139 s
+    [Gloo] Rank 2 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 0 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 1 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+    [Gloo] Rank 3 is connected to 3 peer ranks. Expected number of connected peer ranks is : 3
+
+    [Backend=gloo, Device=cpu, Size=100MB, World=4]
+    Avg all-reduce time (per rank): [0.1665104627609253, 0.16651995480060577, 0.1665157526731491, 0.16652266681194305]
+    Mean time: 0.1665 s
+
+result on server(cuda):
+    [Backend=nccl, Device=cuda, Size=1MB, World=2]
+    Avg all-reduce time (per rank): [8.087158494163305e-05, 7.936954352771863e-05]
+    Mean time: 0.0001 s
+
+    [Backend=nccl, Device=cuda, Size=10MB, World=2]
+    Avg all-reduce time (per rank): [0.0004024505615234375, 0.00040061475010588765]
+    Mean time: 0.0004 s
+
+    [Backend=nccl, Device=cuda, Size=100MB, World=2]
+    Avg all-reduce time (per rank): [0.0037048577796667814, 0.003703904105350375]
+    Mean time: 0.0037 s
+
+    [Backend=nccl, Device=cuda, Size=1MB, World=4]
+    Avg all-reduce time (per rank): [0.000186920166015625, 0.0002096176176564768, 0.00020935534848831594, 0.00021376609220169485]
+    Mean time: 0.0002 s
+
+    [Backend=nccl, Device=cuda, Size=10MB, World=4]
+    Avg all-reduce time (per rank): [0.0007302522426471114, 0.000740861869417131, 0.000737738620955497, 0.0007498025661334395]
+    Mean time: 0.0007 s
+
+
+    [Backend=nccl, Device=cuda, Size=100MB, World=4]
+    Avg all-reduce time (per rank): [0.006644559092819691, 0.006653857417404652, 0.006651639938354492, 0.0066516161896288395]
+    Mean time: 0.0067 s
+
+Analysis:
+
+    | Backend | Device     | World Size | Data Size | 平均时间 (s) | 备注            |
+    | ------- | ---------- | ---------- | --------- | -------- | ------------- |
+    | gloo    | CPU        | 2          | 1MB       | 0.0009   | 慢于 GPU 两个数量级  |
+    | gloo    | CPU        | 2          | 100MB     | 0.094    | 线性增长明显        |
+    | gloo    | CPU        | 4          | 100MB     | 0.166    | 增加进程后通信开销倍增   |
+    | nccl    | GPU (5090) | 2          | 1MB       | 0.00008  | 极快，~10μs 级    |
+    | nccl    | GPU (5090) | 2          | 100MB     | 0.0037   | 仅 3.7ms，优异    |
+    | nccl    | GPU (5090) | 4          | 100MB     | 0.0067   | 稍有上升，通信同步代价增加 |
+
+    GPU（NCCL）比 CPU（Gloo）快约 25～40倍；
+
+    GPU 的 时间随数据规模几乎线性增长，说明带宽占主导；
+
+    增加 world_size（进程数）后，时间略增但不爆炸，说明通信算法优化得好；
+
+    CPU 的增长曲线更陡，说明其受限于网络栈和内存带宽。
+
