@@ -128,9 +128,9 @@ def run_naive_ddp_benchmark(
     rank: int, 
     world_size: int, 
     config: ModelConfig,
-    batch_size=2,  # 小 batch
+    batch_size=4,  # 小 batch
     seq_len=32,    # 小序列
-    num_steps=2,   # 测试用少量 step
+    num_steps=10,   # 测试用少量 step
     # batch_size: int = 8,
     # seq_len: int = 1024,
     # num_steps: int = 20,
@@ -249,18 +249,18 @@ def main():
         return
     
     # XL model configuration
-    # config = ModelConfig()
+    config = ModelConfig()
 
     #smaller size model
-    config = ModelConfig(
-        vocab_size=50257,
-        d_model=128,    # 缩小模型维度
-        n_layers=2,     # 缩少层数
-        n_heads=2,      # 少些注意力头
-        d_ff=512,       # MLP 隐藏层
-        max_seq_len=32, # 缩短序列长度
-        dropout=0.1
-    )
+    # config = ModelConfig(
+    #     vocab_size=50257,
+    #     d_model=768,    # 缩小模型维度
+    #     n_layers=12,     # 缩少层数
+    #     n_heads=12,      # 少些注意力头
+    #     d_ff=3072,       # MLP 隐藏层
+    #     max_seq_len=128, # 缩短序列长度
+    #     dropout=0.1
+    # )
     
     # Run benchmark
     mp.set_start_method("spawn", force=True)
