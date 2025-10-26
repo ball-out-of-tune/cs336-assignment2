@@ -132,8 +132,8 @@ def run_flatten_ddp_benchmark(
     rank: int,
     world_size: int,
     config: ModelConfig,
-    batch_size=4,
-    seq_len=32,
+    batch_size=2,
+    seq_len=16,
     num_steps=10,
     warmup_steps=5
 ) -> BenchmarkMetrics:
