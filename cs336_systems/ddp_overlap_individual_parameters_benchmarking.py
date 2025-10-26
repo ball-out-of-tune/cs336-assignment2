@@ -14,16 +14,36 @@ import os
 
 
 class GPT2Config:
-    """GPT2-small configuration"""
+    # """GPT2-small configuration"""
+    # def __init__(self):
+    #     self.vocab_size = 50257
+    #     self.n_positions = 1024
+    #     self.n_embd = 768
+    #     self.n_layer = 12
+    #     self.n_head = 12
+    #     self.batch_size = 8
+    #     self.seq_length = 512
+    """GPT-2 XL (Extra Large) configuration (~1.5B parameters)"""
     def __init__(self):
-        self.vocab_size = 50257
-        self.n_positions = 1024
-        self.n_embd = 768
-        self.n_layer = 12
-        self.n_head = 12
-        self.batch_size = 8
-        self.seq_length = 512
-
+        self.vocab_size = 50257        # 与所有 GPT-2 版本相同
+        self.n_positions = 1024        # 最大上下文长度
+        self.n_embd = 1600             # 隐藏层维度（embedding size）
+        self.n_layer = 48              # Transformer 层数
+        self.n_head = 25               # 注意力头数（注意：1600 / 25 = 64，每个头64维）
+        # 注意：batch_size 和 seq_length 不是模型结构参数，通常由训练/推理设置决定
+        # 以下仅为示例，可根据实际需求调整
+        self.batch_size = 4            # 通常较小，因模型很大
+        self.seq_length = 1024         # 可使用最大长度，但受显存限制
+    # """GPT-2 Medium configuration (~355M parameters)"""
+    # def __init__(self):
+    #     self.vocab_size = 50257        # 词表大小，所有 GPT-2 版本一致
+    #     self.n_positions = 1024        # 最大序列长度
+    #     self.n_embd = 1024             # 隐藏层维度（embedding size）
+    #     self.n_layer = 24              # Transformer 层数
+    #     self.n_head = 16               # 注意力头数（1024 / 16 = 64，每头64维）
+    #     # 以下为训练/推理时的示例设置，非模型结构参数
+    #     self.batch_size = 8            # 根据硬件调整
+    #     self.seq_length = 1024         # 可设为 ≤1024 的任意值
 
 class SimpleGPT2(nn.Module):
     """Simplified GPT2-small model for benchmarking"""
