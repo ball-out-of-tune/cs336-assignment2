@@ -6,6 +6,7 @@ from torch.nn.parallel import DistributedDataParallel as TorchDDP
 import time
 from typing import List
 import os
+import torch.cuda.nvtx as nvtx
 
 
 # Import your DDP implementation
@@ -14,26 +15,26 @@ import os
 
 
 class GPT2Config:
-    # """GPT2-small configuration"""
-    # def __init__(self):
-    #     self.vocab_size = 50257
-    #     self.n_positions = 1024
-    #     self.n_embd = 768
-    #     self.n_layer = 12
-    #     self.n_head = 12
-    #     self.batch_size = 8
-    #     self.seq_length = 512
-    """GPT-2 XL (Extra Large) configuration (~1.5B parameters)"""
+    """GPT2-small configuration"""
     def __init__(self):
-        self.vocab_size = 50257        # 与所有 GPT-2 版本相同
-        self.n_positions = 1024        # 最大上下文长度
-        self.n_embd = 1600             # 隐藏层维度（embedding size）
-        self.n_layer = 48              # Transformer 层数
-        self.n_head = 25               # 注意力头数（注意：1600 / 25 = 64，每个头64维）
-        # 注意：batch_size 和 seq_length 不是模型结构参数，通常由训练/推理设置决定
-        # 以下仅为示例，可根据实际需求调整
-        self.batch_size = 4            # 通常较小，因模型很大
-        self.seq_length = 1024         # 可使用最大长度，但受显存限制
+        self.vocab_size = 50257
+        self.n_positions = 1024
+        self.n_embd = 768
+        self.n_layer = 12
+        self.n_head = 12
+        self.batch_size = 8
+        self.seq_length = 512
+    # """GPT-2 XL (Extra Large) configuration (~1.5B parameters)"""
+    # def __init__(self):
+    #     self.vocab_size = 50257        # 与所有 GPT-2 版本相同
+    #     self.n_positions = 1024        # 最大上下文长度
+    #     self.n_embd = 1600             # 隐藏层维度（embedding size）
+    #     self.n_layer = 48              # Transformer 层数
+    #     self.n_head = 25               # 注意力头数（注意：1600 / 25 = 64，每个头64维）
+    #     # 注意：batch_size 和 seq_length 不是模型结构参数，通常由训练/推理设置决定
+    #     # 以下仅为示例，可根据实际需求调整
+    #     self.batch_size = 4            # 通常较小，因模型很大
+    #     self.seq_length = 1024         # 可使用最大长度，但受显存限制
     # """GPT-2 Medium configuration (~355M parameters)"""
     # def __init__(self):
     #     self.vocab_size = 50257        # 词表大小，所有 GPT-2 版本一致
@@ -312,18 +313,26 @@ def benchmark_ddp(rank, world_size, ddp_type='overlap', num_iterations=20, warmu
                               device=device)
         
         optimizer.zero_grad()
+        nvtx.range_push("forward")
         logits = ddp_model(input_ids)
+        nvtx.range_pop()
+
+        nvtx.range_push("backward")
         loss = criterion(logits.view(-1, config.vocab_size), labels.view(-1))
         loss.backward()
+        nvtx.range_pop()
         
+        nvtx.range_push("gradient_sync")
         # Synchronize gradients based on DDP type
         if ddp_type == 'overlap':
             ddp_model.finish_gradient_synchronization()
         elif ddp_type in ['per_param', 'concatenated']:
             ddp_model.synchronize_gradients()
+        nvtx.range_pop()
         
+        nvtx.range_push("optimizer_step")
         optimizer.step()
-    
+        nvtx.range_pop()
     # Synchronize after timing
     torch.cuda.synchronize()
     dist.barrier()
