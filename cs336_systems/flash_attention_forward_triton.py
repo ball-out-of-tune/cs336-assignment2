@@ -145,7 +145,7 @@ def flash_fwd_kernel(
     tl.store(L_block_ptr, L_to_store)
 
 
-def get_flashattention_autograd_function_triton() -> Type[torch.autograd.Function]:
+def my_get_flashattention_autograd_function_triton() -> Type[torch.autograd.Function]:
     """
     Triton-only FlashAttention forward autograd.Function.
     Backward is not implemented.
